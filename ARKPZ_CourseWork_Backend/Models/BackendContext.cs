@@ -10,8 +10,9 @@ namespace ARKPZ_CourseWork_Backend.Models
     public class BackendContext: DbContext
     {
         public virtual DbSet<Drone> Drones { get; set; }
-        public virtual DbSet<CrashRecord> CrashReports { get; set; }
+        public virtual DbSet<CrashRecord> CrashRecords { get; set; }
         public virtual DbSet<Driver> Drivers { get; set; }
+        public virtual DbSet<Employee> Employees { get; set; }
 
         public BackendContext(DbContextOptions<BackendContext> dbContextOptions) :
             base(dbContextOptions)
@@ -19,7 +20,7 @@ namespace ARKPZ_CourseWork_Backend.Models
             Database.EnsureCreated();
         }
 
-        public DbSet<ARKPZ_CourseWork_Backend.Models.Coordinates> Coordinates { get; set; }
+        public DbSet<Coordinates> Coordinates { get; set; }
 
         //protected override void OnModelCreating(ModelBuilder modelBuilder)
         //{

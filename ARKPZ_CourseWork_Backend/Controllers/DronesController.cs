@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ARKPZ_CourseWork_Backend.Models;
+using System.Collections.Concurrent;
+using Microsoft.AspNetCore.Authorization;
+using Newtonsoft.Json;
 
 namespace ARKPZ_CourseWork_Backend.Controllers
 {
@@ -13,30 +16,33 @@ namespace ARKPZ_CourseWork_Backend.Controllers
     [ApiController]
     public class DronesController : ControllerBase
     {
-        private readonly BackendContext _context;
+        private readonly BackendContext dbContext;
 
         public DronesController(BackendContext context)
         {
-            _context = context;
+            dbContext = context;
+            //_authTokens = authTokens;
+            //lock (_authTokens)
+            //{
+            //    // TODO TRY STANDARD AUTHORIZATION
+            //    _authTokens.AddOrUpdate();
+            //}
         }
 
         // GET: api/Drones
         [HttpGet]
+        [Authorize]
         public IEnumerable<Drone> GetDrones()
         {
-            return _context.Drones;
+            return dbContext.Drones;
         }
 
         // GET: api/Drones/5
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<IActionResult> GetDrone([FromRoute] int id)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var drone = await _context.Drones.FindAsync(id);
+            var drone = await dbContext.Drones.FindAsync(id);
 
             if (drone == null)
             {
@@ -48,23 +54,14 @@ namespace ARKPZ_CourseWork_Backend.Controllers
 
         // PUT: api/Drones/5
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> PutDrone([FromRoute] int id, [FromBody] Drone drone)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            if (id != drone.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(drone).State = EntityState.Modified;
+            dbContext.Entry(drone).State = EntityState.Modified;
 
             try
             {
-                await _context.SaveChangesAsync();
+                await dbContext.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -83,43 +80,54 @@ namespace ARKPZ_CourseWork_Backend.Controllers
 
         // POST: api/Drones
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> PostDrone([FromBody] Drone drone)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            _context.Drones.Add(drone);
-            await _context.SaveChangesAsync();
+            dbContext.Drones.Add(drone);
+            await dbContext.SaveChangesAsync();
 
             return CreatedAtAction("GetDrone", new { id = drone.Id }, drone);
         }
 
         // DELETE: api/Drones/5
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDrone([FromRoute] int id)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var drone = await _context.Drones.FindAsync(id);
+            var drone = await dbContext.Drones.FindAsync(id);
             if (drone == null)
             {
                 return NotFound();
             }
 
-            _context.Drones.Remove(drone);
-            await _context.SaveChangesAsync();
+            dbContext.Drones.Remove(drone);
+            await dbContext.SaveChangesAsync();
 
             return Ok(drone);
         }
 
+        [HttpGet("stat/{id}")]
+        public ActionResult<string> GetStatistics([FromBody] int id)
+        {
+            Driver driver = dbContext.Drivers.FirstOrDefault(x => x.Id == id);
+            if (driver == null)
+            {
+                return BadRequest($"No driver with Id {id}");
+            }
+
+            return GetDriverStat(driver);
+        }
+
         private bool DroneExists(int id)
         {
-            return _context.Drones.Any(e => e.Id == id);
+            return dbContext.Drones.Any(e => e.Id == id);
+        }
+
+        private string GetDriverStat(Driver driver)
+        {
+            var crashes = dbContext.CrashRecords.Where(x => x.Driver.Id == driver.Id);
+            var crashCount = crashes.Count();
+            return JsonConvert.SerializeObject(new { CrashCount = crashCount });
         }
     }
 }

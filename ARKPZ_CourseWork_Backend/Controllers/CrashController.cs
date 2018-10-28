@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ARKPZ_CourseWork_Backend.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -38,6 +39,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public IActionResult Crash([FromBody] CrashReport crashReport)
         {
             int driverId = crashReport.DriverId;
@@ -72,7 +74,8 @@ namespace ARKPZ_CourseWork_Backend.Controllers
                 ApproximateArrivalTime = nearestDrone.GetApproximateArrivalTime(crashRecord.Coords)
                 // TODO mean speed
             };
-
+            dbContext.CrashRecords.Add(crashRecord);
+            dbContext.SaveChanges();
             TimeSpan arrival = GetArrivalTimeTest(nearestDrone.Id, crashReport.Coords);
             return Ok(arrival.Minutes);
             //return new JsonResult(new object()) { StatusCode = 200 };
@@ -88,12 +91,24 @@ namespace ARKPZ_CourseWork_Backend.Controllers
             return nearestDrone;
         }
 
-        [Route("test")]
-        [HttpGet]
+        //[Authorize]
+        [HttpGet("test")]
         public string Test()
         {
             var drones = dbContext.Drones;
             return string.Join("\n", drones);
+        }
+
+        [HttpGet("stat/{id}")]
+        public ActionResult<string> GetStatistics([FromBody] int id)
+        {
+            Driver driver = dbContext.Drivers.FirstOrDefault(x => x.Id == id);
+            if(driver == null)
+            {
+                return BadRequest($"No driver with Id {id}");
+            }
+
+            return GetDriverStat(driver);
         }
 
         private TimeSpan GetArrivalTimeTest(int droneId, Coordinates coords)
@@ -122,6 +137,13 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         {
             var data = JsonConvert.DeserializeObject<DateTime>(e.Data);
             arrivalTime = data;
+        }
+
+        private string GetDriverStat(Driver driver)
+        {
+            var crashes = dbContext.CrashRecords.Where(x => x.Driver.Id == driver.Id);
+            var crashCount = crashes.Count();
+            return JsonConvert.SerializeObject(new { CrashCount = crashCount });
         }
     }
 }
