@@ -4,7 +4,7 @@ namespace ARKPZ_CourseWork_Backend.Models
 {
     public class CrashReport
     {
-        public int DriverId { get; set; }
+        //public string UserEmail { get; set; }
         public DangerLevel DangerLevel {get;set;}
         public Coordinates Coords { get; set; }
     }

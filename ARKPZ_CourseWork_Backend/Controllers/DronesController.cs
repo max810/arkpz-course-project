@@ -80,7 +80,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
 
         // POST: api/Drones
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> PostDrone([FromBody] Drone drone)
         {
             dbContext.Drones.Add(drone);
@@ -109,13 +109,13 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         [HttpGet("stat/{id}")]
         public ActionResult<string> GetStatistics([FromBody] int id)
         {
-            Driver driver = dbContext.Drivers.FirstOrDefault(x => x.Id == id);
-            if (driver == null)
+            User user = dbContext.Users.FirstOrDefault(x => x.Id == id.ToString());
+            if (user == null)
             {
-                return BadRequest($"No driver with Id {id}");
+                return BadRequest($"No user with Id {id}");
             }
 
-            return GetDriverStat(driver);
+            return GetUserStat(user);
         }
 
         private bool DroneExists(int id)
@@ -123,9 +123,9 @@ namespace ARKPZ_CourseWork_Backend.Controllers
             return dbContext.Drones.Any(e => e.Id == id);
         }
 
-        private string GetDriverStat(Driver driver)
+        private string GetUserStat(User user)
         {
-            var crashes = dbContext.CrashRecords.Where(x => x.Driver.Id == driver.Id);
+            var crashes = dbContext.CrashRecords.Where(x => x.User.Id == user.Id);
             var crashCount = crashes.Count();
             return JsonConvert.SerializeObject(new { CrashCount = crashCount });
         }

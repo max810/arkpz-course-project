@@ -4,10 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using ARKPZ_CourseWork_Backend.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using WebSocketSharp;
 //using System.Web.Script.Serialization;
 
 namespace ARKPZ_CourseWork_Backend.Controllers
@@ -17,15 +17,14 @@ namespace ARKPZ_CourseWork_Backend.Controllers
     public class CrashController : ControllerBase
     {
         // POST api/values
-        private Dictionary<int, string> DroneAddresses = new Dictionary<int, string>
-        {
-
-        };
+        private Dictionary<int, string> DroneAddresses = new Dictionary<int, string> {};
+        private readonly UserManager<User> _userManager;
         private readonly BackendContext dbContext;
         private DateTime arrivalTime;
-        public CrashController(BackendContext context)
+        public CrashController(BackendContext context, UserManager<User> userManager)
         {
             dbContext = context;
+            _userManager = userManager;
             //var drone = new Drone()
             //{
             //    Id = 0,
@@ -38,29 +37,31 @@ namespace ARKPZ_CourseWork_Backend.Controllers
             //dbContext.SaveChanges();
         }
 
-        [HttpPost]
+        [HttpPost("send-crash")]
         [Authorize]
-        public IActionResult Crash([FromBody] CrashReport crashReport)
+        public async Task<IActionResult> Crash([FromBody] CrashReport crashReport)
         {
-            int driverId = crashReport.DriverId;
-            var driver = dbContext.Drivers.FirstOrDefault(x => x.Id == driverId);
-            if (driver is null)
-            {
-                return Unauthorized();
-            }
-            if (driver.TrustLevel < 5)
-            {
-                return Ok("untrustworthy");
-            }
+            //int userId = crashReport.UserId;
+            string email = User.Identity.Name;
+            User user = await dbContext.Users.FirstOrDefaultAsync(x => x.Email == email);
+            //var user = dbContext.Users.FirstOrDefault(x => x.Id == userId.ToString());
+            //if (user is null)
+            //{
+            //    return Unauthorized();
+            //}
+            //if (user.TrustLevel < 5)
+            //{
+            //    return Ok("untrustworthy");
+            //}
             var crashRecord = new CrashRecord()
             {
-                Driver = driver,
+                User = user,
                 Coords = crashReport.Coords,
             };
             Drone nearestDrone = GetNearestDrone(crashRecord.Coords);
             if (nearestDrone is null)
             {
-                return Ok("no-drone");
+                return Ok("no drones available");
                 // handle this case
                 // return "No drones available, but we will call ambulance"
             }
@@ -77,7 +78,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
             dbContext.CrashRecords.Add(crashRecord);
             dbContext.SaveChanges();
             TimeSpan arrival = GetArrivalTimeTest(nearestDrone.Id, crashReport.Coords);
-            return Ok(arrival.Minutes);
+            return Ok($"ETA: {arrival.Minutes} minutes");
             //return new JsonResult(new object()) { StatusCode = 200 };
         }
 
@@ -99,27 +100,39 @@ namespace ARKPZ_CourseWork_Backend.Controllers
             return string.Join("\n", drones);
         }
 
-        [HttpGet("stat/{id}")]
-        public ActionResult<string> GetStatistics([FromBody] int id)
+        [HttpGet("stat")]
+        [Authorize]
+        public async Task<ActionResult<string>> GetStatistics()
         {
-            Driver driver = dbContext.Drivers.FirstOrDefault(x => x.Id == id);
-            if(driver == null)
+            string email = User.Identity.Name;
+            User user = await dbContext.Users.FirstOrDefaultAsync(x => x.Email == email);
+
+            return GetUserStat(user);
+        }
+
+        [HttpGet("stat/{id}")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<string>> GetStatistics([FromBody] string email)
+        {
+            User user = await _userManager.FindByEmailAsync(email);
+            //User user = dbContext.Users.FirstOrDefault(x => x.Id == id.ToString());
+            if(user == null)
             {
-                return BadRequest($"No driver with Id {id}");
+                return BadRequest($"No user with email {email}");
             }
 
-            return GetDriverStat(driver);
+            return GetUserStat(user);
         }
 
         private TimeSpan GetArrivalTimeTest(int droneId, Coordinates coords)
         {
-            string droneAddress = DroneAddresses[droneId];
-            var socket = new WebSocket(droneAddress);
-            socket.OnMessage += OnDroneMessageReceivedTest;
-            string requestFormatted = FormatArrivalTimeRequestTest(coords);
-            //socket.Send(requestFormatted);
+            //string droneAddress = DroneAddresses[droneId];
+            //var socket = new WebSocket(droneAddress);
+            //socket.OnMessage += OnDroneMessageReceivedTest;
+            //string requestFormatted = FormatArrivalTimeRequestTest(coords);
+            ////socket.Send(requestFormatted);
 
-            return DateTime.Now - arrivalTime;
+            return TimeSpan.FromMinutes(10);
         }
 
         private string FormatArrivalTimeRequestTest(Coordinates coords)
@@ -133,15 +146,15 @@ namespace ARKPZ_CourseWork_Backend.Controllers
             return JsonConvert.SerializeObject(request);
         }
 
-        private void OnDroneMessageReceivedTest(object sender, MessageEventArgs e)
-        {
-            var data = JsonConvert.DeserializeObject<DateTime>(e.Data);
-            arrivalTime = data;
-        }
+        //private void OnDroneMessageReceivedTest(object sender, MessageEventArgs e)
+        //{
+        //    var data = JsonConvert.DeserializeObject<DateTime>(e.Data);
+        //    arrivalTime = data;
+        //}
 
-        private string GetDriverStat(Driver driver)
+        private string GetUserStat(User user)
         {
-            var crashes = dbContext.CrashRecords.Where(x => x.Driver.Id == driver.Id);
+            var crashes = dbContext.CrashRecords.Where(x => x.User.Id == user.Id);
             var crashCount = crashes.Count();
             return JsonConvert.SerializeObject(new { CrashCount = crashCount });
         }
