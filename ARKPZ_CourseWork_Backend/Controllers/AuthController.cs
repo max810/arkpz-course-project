@@ -17,7 +17,7 @@ using Newtonsoft.Json;
 
 namespace ARKPZ_CourseWork_Backend.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("accr/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
     {

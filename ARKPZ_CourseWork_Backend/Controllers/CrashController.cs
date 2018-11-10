@@ -67,6 +67,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
             }
             crashRecord.AssignedDrone = nearestDrone;
 
+            // ?
             var response = new
             {
                 DroneId = nearestDrone.Id,
@@ -86,8 +87,8 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         {
             var drones = dbContext.Drones;
             var nearestDrone = drones.Where(x => x.Status == "ok")
-                .DefaultIfEmpty()
-                .Min();
+                .OrderBy(x => x.GetDistance(coords))
+                .FirstOrDefault();
 
             return nearestDrone;
         }

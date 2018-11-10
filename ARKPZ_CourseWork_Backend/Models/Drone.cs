@@ -20,6 +20,11 @@ namespace ARKPZ_CourseWork_Backend.Models
             return $"{Id}, ({Latitude}, {Longitude}) : {Status}";
         }
 
+        public double GetDistance(Coordinates coords)
+        {
+            return Math.Sqrt(Math.Pow(coords.Latitude - Latitude, 2) + Math.Pow(coords.Latitude - Latitude, 2));
+        }
+
         internal object GetApproximateArrivalTime(Coordinates coords)
         {
             throw new NotImplementedException();

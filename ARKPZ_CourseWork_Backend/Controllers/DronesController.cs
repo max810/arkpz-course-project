@@ -12,7 +12,7 @@ using Newtonsoft.Json;
 
 namespace ARKPZ_CourseWork_Backend.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("accr/[controller]")]
     [ApiController]
     public class DronesController : ControllerBase
     {
@@ -31,7 +31,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
 
         // GET: api/Drones
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "admin")]
         public IEnumerable<Drone> GetDrones()
         {
             return dbContext.Drones;
@@ -39,7 +39,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
 
         // GET: api/Drones/5
         [HttpGet("{id}")]
-        [Authorize]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> GetDrone([FromRoute] int id)
         {
             var drone = await dbContext.Drones.FindAsync(id);
@@ -54,7 +54,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
 
         // PUT: api/Drones/5
         [HttpPut("{id}")]
-        [Authorize]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> PutDrone([FromRoute] int id, [FromBody] Drone drone)
         {
             dbContext.Entry(drone).State = EntityState.Modified;
@@ -90,7 +90,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         }
 
         // DELETE: api/Drones/5
-        [Authorize]
+        [Authorize(Roles = "admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDrone([FromRoute] int id)
         {
@@ -107,6 +107,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         }
 
         [HttpGet("stat/{id}")]
+        [Authorize(Roles = "admin")]
         public ActionResult<string> GetStatistics([FromBody] int id)
         {
             User user = dbContext.Users.FirstOrDefault(x => x.Id == id.ToString());
