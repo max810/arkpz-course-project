@@ -32,6 +32,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         // GET: api/Drones
         [HttpGet]
         [Authorize(Roles = "admin")]
+        [ProducesResponseType(typeof(Drone[]), StatusCodes.Status200OK)]
         public IEnumerable<Drone> GetDrones()
         {
             return dbContext.Drones;
@@ -40,6 +41,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         // GET: api/Drones/5
         [HttpGet("{id}")]
         [Authorize(Roles = "admin")]
+        [ProducesResponseType(typeof(Drone), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetDrone([FromRoute] int id)
         {
             var drone = await dbContext.Drones.FindAsync(id);
@@ -81,6 +83,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         // POST: api/Drones
         [HttpPost]
         [Authorize(Roles = "admin")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public async Task<IActionResult> PostDrone([FromBody] Drone drone)
         {
             dbContext.Drones.Add(drone);
@@ -92,6 +95,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         // DELETE: api/Drones/5
         [Authorize(Roles = "admin")]
         [HttpDelete("{id}")]
+        [ProducesResponseType(typeof(Drone), StatusCodes.Status200OK)]
         public async Task<IActionResult> DeleteDrone([FromRoute] int id)
         {
             var drone = await dbContext.Drones.FindAsync(id);
@@ -108,6 +112,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
 
         [HttpGet("stat/{id}")]
         [Authorize(Roles = "admin")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public ActionResult<string> GetStatistics([FromBody] int id)
         {
             User user = dbContext.Users.FirstOrDefault(x => x.Id == id.ToString());

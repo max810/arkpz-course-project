@@ -12,7 +12,7 @@ namespace ARKPZ_CourseWork_Backend.Models
         public const string ISSUER = "ACCR_system"; // издатель токена
         public const string AUDIENCE = "localhost_user"; // потребитель токена
         public const string KEY = "mysupersecret_secretkey123";   // ключ для шифрации
-        public const int LIFETIME = 1; // время жизни токена - 1 минута
+        public const int LIFETIME = 60; // время жизни токена - 1 минута
         public static SymmetricSecurityKey GetSymmetricSecurityKey()
         {
             return new SymmetricSecurityKey(Encoding.ASCII.GetBytes(KEY));

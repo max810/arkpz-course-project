@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,6 +35,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         }
 
         [HttpPost("register")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public async Task RegisterAsync([FromBody] UserRegisterRequestModel userRegisterRequestModel)
         {
             if (ModelState.IsValid)
@@ -55,12 +57,14 @@ namespace ARKPZ_CourseWork_Backend.Controllers
                 }
                 else
                 {
-                    await Response.WriteAsync("Result validation failed!");
+                    Response.StatusCode = 400; // Bad Request
+                    await Response.WriteAsync(string.Join("\n", result.Errors.Select(x => x.Description)));
                 }
             }
         }
 
         [HttpPost("login")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public async Task Login([FromBody] AuthModel model)
         {
             await _signInManager.PasswordSignInAsync(model.Email, model.Password, true,
@@ -92,7 +96,8 @@ namespace ARKPZ_CourseWork_Backend.Controllers
                     var response = new
                     {
                         access_token = encodedJwt,
-                        username = user.UserName
+                        user_name = user.UserName,
+                        profile_type = user.Role,
                     };
 
                     Response.ContentType = "application/json";
@@ -101,7 +106,8 @@ namespace ARKPZ_CourseWork_Backend.Controllers
                     return;
                 }
 
-                await Response.WriteAsync("Wrong credentials!");
+                Response.StatusCode = 400; // Bad Request
+                await Response.WriteAsync("Either username or password is wrong.");
             }
         }
 

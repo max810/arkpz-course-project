@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ARKPZ_CourseWork_Backend.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +21,6 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         private Dictionary<int, string> DroneAddresses = new Dictionary<int, string> {};
         private readonly UserManager<User> _userManager;
         private readonly BackendContext dbContext;
-        private DateTime arrivalTime;
         public CrashController(BackendContext context, UserManager<User> userManager)
         {
             dbContext = context;
@@ -38,6 +38,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         }
 
         [HttpPost("send-crash")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [Authorize]
         public async Task<IActionResult> Crash([FromBody] CrashReport crashReport)
         {
@@ -59,27 +60,29 @@ namespace ARKPZ_CourseWork_Backend.Controllers
                 Coords = crashReport.Coords,
             };
             Drone nearestDrone = GetNearestDrone(crashRecord.Coords);
-            if (nearestDrone is null)
+            if (nearestDrone == null)
             {
-                return Ok("no drones available");
-                // handle this case
-                // return "No drones available, but we will call ambulance"
+                return Ok(new
+                {
+                    drone = (Drone)null,
+                    eta = -1,
+                });
             }
             crashRecord.AssignedDrone = nearestDrone;
 
             // ?
+            TimeSpan arrival = GetArrivalTimeTest(nearestDrone.Id, crashReport.Coords);
             var response = new
             {
-                DroneId = nearestDrone.Id,
-                DroneLongitude = nearestDrone.Longitude,
-                DroneLatitude = nearestDrone.Latitude,
-                ApproximateArrivalTime = nearestDrone.GetApproximateArrivalTime(crashRecord.Coords)
-                // TODO mean speed
+                drone = nearestDrone,
+                eta = arrival
             };
+
             dbContext.CrashRecords.Add(crashRecord);
             dbContext.SaveChanges();
-            TimeSpan arrival = GetArrivalTimeTest(nearestDrone.Id, crashReport.Coords);
-            return Ok($"ETA: {arrival.Minutes} minutes");
+
+            //TimeSpan arrival = GetArrivalTimeTest(nearestDrone.Id, crashReport.Coords);
+            return Ok(response);
             //return new JsonResult(new object()) { StatusCode = 200 };
         }
 
@@ -95,6 +98,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
 
         //[Authorize]
         [HttpGet("test")]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         public string Test()
         {
             var drones = dbContext.Drones;
@@ -103,26 +107,30 @@ namespace ARKPZ_CourseWork_Backend.Controllers
 
         [HttpGet("stat")]
         [Authorize]
-        public async Task<ActionResult<string>> GetStatistics()
+        [ProducesResponseType(typeof(IEnumerable<CrashRecord>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<CrashRecord>>> GetStatistics()
         {
             string email = User.Identity.Name;
             User user = await dbContext.Users.FirstOrDefaultAsync(x => x.Email == email);
 
-            return GetUserStat(user);
+            return Ok(GetUserStat(user));
         }
 
         [HttpGet("stat/{id}")]
         [Authorize(Roles = "admin")]
-        public async Task<ActionResult<string>> GetStatistics([FromBody] string email)
+        [ProducesResponseType(typeof(IEnumerable<CrashRecord>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<IEnumerable<CrashRecord>>> GetStatistics([FromBody] string email)
         {
             User user = await _userManager.FindByEmailAsync(email);
             //User user = dbContext.Users.FirstOrDefault(x => x.Id == id.ToString());
             if(user == null)
             {
-                return BadRequest($"No user with email {email}");
+                Response.StatusCode = 400;
+                return BadRequest($"User with email {email} not found");
             }
 
-            return GetUserStat(user);
+            return Ok(GetUserStat(user));
         }
 
         private TimeSpan GetArrivalTimeTest(int droneId, Coordinates coords)
@@ -153,11 +161,13 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         //    arrivalTime = data;
         //}
 
-        private string GetUserStat(User user)
+        private IEnumerable<CrashRecord> GetUserStat(User user)
         {
-            var crashes = dbContext.CrashRecords.Where(x => x.User.Id == user.Id);
-            var crashCount = crashes.Count();
-            return JsonConvert.SerializeObject(new { CrashCount = crashCount });
+            var crashes = dbContext.CrashRecords
+                .Include(x => x.AssignedDrone)
+                .Where(x => x.User.Id == user.Id);
+            //var crashCount = crashes.Count();
+            return crashes;
         }
     }
 }

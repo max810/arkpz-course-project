@@ -18,7 +18,7 @@ namespace ARKPZ_CourseWork_Backend.Models
         public BackendContext(DbContextOptions<BackendContext> dbContextOptions) :
             base(dbContextOptions)
         {
-            Database.EnsureCreated();
+            //Database.EnsureCreated();
             //Database.Migrate();
         }
 
