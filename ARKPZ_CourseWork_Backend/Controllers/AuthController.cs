@@ -35,7 +35,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         }
 
         [HttpPost("register")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         public async Task RegisterAsync([FromBody] UserRegisterRequestModel userRegisterRequestModel)
         {
             if (ModelState.IsValid)
@@ -49,11 +49,13 @@ namespace ARKPZ_CourseWork_Backend.Controllers
                 var result = await _userManager.CreateAsync(user, userRegisterRequestModel.Password);
                 if (result.Succeeded)
                 {
-                    await Login(new AuthModel
-                    {
-                        Email = userRegisterRequestModel.Email,
-                        Password = userRegisterRequestModel.Password
-                    });
+                    Response.StatusCode = 200;
+                    await Response.WriteAsync("OK");
+                    //await Login(new AuthModel
+                    //{
+                    //    Email = userRegisterRequestModel.Email,
+                    //    Password = userRegisterRequestModel.Password
+                    //});
                 }
                 else
                 {

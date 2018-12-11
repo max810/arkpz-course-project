@@ -8,6 +8,16 @@
   <ItemGroup>
     <Compile Remove="Migrations\20181117161709_InitialCreation.cs" />
     <Compile Remove="Migrations\20181117161709_InitialCreation.Designer.cs" />
+    <Compile Remove="Migrations\20181117161951_InitialCreation.cs" />
+    <Compile Remove="Migrations\20181117161951_InitialCreation.Designer.cs" />
+    <Compile Remove="Migrations\20181208170802_AzureDeployment.cs" />
+    <Compile Remove="Migrations\20181208170802_AzureDeployment.Designer.cs" />
+    <Compile Remove="Migrations\20181208171125_AzureDeployment1.cs" />
+    <Compile Remove="Migrations\20181208171125_AzureDeployment1.Designer.cs" />
+    <Compile Remove="Migrations\20181208171839_AzureDeployment2.cs" />
+    <Compile Remove="Migrations\20181208171839_AzureDeployment2.Designer.cs" />
+    <Compile Remove="Migrations\20181208172220_AzureDeployment3.cs" />
+    <Compile Remove="Migrations\20181208172220_AzureDeployment3.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>
