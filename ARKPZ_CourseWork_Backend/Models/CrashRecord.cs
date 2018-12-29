@@ -11,7 +11,7 @@ namespace ARKPZ_CourseWork_Backend.Models
         public User User { get; set; }
         public Drone AssignedDrone { get; set; }
         public Coordinates Coords { get; set; }
-        public DateTime Date { get; set; } = DateTime.UtcNow;
+        public DateTime Date { get; set; } = DateTime.Now;
 
         public CrashRecord()
         {

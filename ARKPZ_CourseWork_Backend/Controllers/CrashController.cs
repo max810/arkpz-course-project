@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using ARKPZ_CourseWork_Backend.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -9,6 +10,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Microsoft.Extensions.Configuration;
+using System.Net;
 //using System.Web.Script.Serialization;
 
 namespace ARKPZ_CourseWork_Backend.Controllers
@@ -18,13 +21,15 @@ namespace ARKPZ_CourseWork_Backend.Controllers
     public class CrashController : ControllerBase
     {
         // POST api/values
-        private Dictionary<int, string> DroneAddresses = new Dictionary<int, string> {};
+        private IConfiguration _configuration;
+        private Dictionary<int, string> DroneAddresses = new Dictionary<int, string> { };
         private readonly UserManager<User> _userManager;
         private readonly BackendContext dbContext;
-        public CrashController(BackendContext context, UserManager<User> userManager)
+        public CrashController(BackendContext context, UserManager<User> userManager, IConfiguration configuration)
         {
             dbContext = context;
             _userManager = userManager;
+            _configuration = configuration;
             //var drone = new Drone()
             //{
             //    Id = 0,
@@ -70,19 +75,32 @@ namespace ARKPZ_CourseWork_Backend.Controllers
             }
             crashRecord.AssignedDrone = nearestDrone;
 
-            // ?
-            TimeSpan arrival = GetArrivalTimeTest(nearestDrone.Id, crashReport.Coords);
-            var response = new
-            {
-                drone = nearestDrone,
-                eta = arrival
-            };
-
             dbContext.CrashRecords.Add(crashRecord);
             dbContext.SaveChanges();
 
+
+            try
+            {
+                TimeSpan arrival = await GetETA(crashRecord.Coords); /*GetArrivalTimeTest(nearestDrone.Id, crashReport.Coords);*/
+                var response = new
+                {
+                    drone = nearestDrone,
+                    eta = arrival
+                };
+                return Ok(response);
+
+            }
+            catch (DroneNotAvailableException)
+            {
+                var response = new
+                {
+                    drone = (Drone)null,
+                    eta = TimeSpan.FromSeconds(0)
+                };
+                return Ok(response);
+            }
+          
             //TimeSpan arrival = GetArrivalTimeTest(nearestDrone.Id, crashReport.Coords);
-            return Ok(response);
             //return new JsonResult(new object()) { StatusCode = 200 };
         }
 
@@ -94,6 +112,49 @@ namespace ARKPZ_CourseWork_Backend.Controllers
                 .FirstOrDefault();
 
             return nearestDrone;
+        }
+
+        private async Task<TimeSpan> GetETA(Coordinates coords)
+        {
+            // тут буде зберігатися вся інформація про поточну операцію
+            string output = "\n\n============== API Call ==================\n\n";
+            try
+            {
+                // створюємо http клієнт для взаємодії з IoT пристрієм.
+                HttpClient iotApi = new HttpClient();
+                // отримуємо необхідні дані для підключення із конфігураційного файлу.
+                var section = _configuration.GetSection("IoT");
+                string iotIp = section["IoT-IP"];
+                string iotPort = section["IoT-Port"];
+                // формуємо строку запиту
+                string apiRequestUrl = $"http://{iotIp}:{iotPort}/api?lat={coords.Latitude}&lon={coords.Longitude}";
+                output += $"API request url: {apiRequestUrl}\n";
+                // робимо GET запит до IoT пристрою
+                using (var response = await iotApi.GetAsync(apiRequestUrl))
+                {
+                    output += $"RESPONSE CODE: {response.StatusCode}\n";
+                    // перевіряємо успішність запиту
+                    if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+                    {
+                        throw new DroneNotAvailableException("Drone is too far away to arrive");
+                    }
+                    // отримуємо тіло відповіді
+                    var content = response.Content;
+                    string contentStr = await content.ReadAsStringAsync();
+                    // перетворюємо результат у об'єкт, що являє собою проміжок часу.
+                    TimeSpan result = TimeSpan.Parse(contentStr);
+                    /*JsonConvert.DeserializeObject<DroneResponse>(contentStr);*/
+
+                    output += "\n==============END API Call==============";
+
+                    return result;
+                }
+            }
+            finally
+            {
+                // пишемо у консоль увесь результат операції, незалежно від успішності/неуспішності запиту
+                Console.WriteLine(output + "\n\n");
+            }
         }
 
         //[Authorize]
@@ -124,7 +185,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         {
             User user = await _userManager.FindByEmailAsync(email);
             //User user = dbContext.Users.FirstOrDefault(x => x.Id == id.ToString());
-            if(user == null)
+            if (user == null)
             {
                 Response.StatusCode = 400;
                 return BadRequest($"User with email {email} not found");

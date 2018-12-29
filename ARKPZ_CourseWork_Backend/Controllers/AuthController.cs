@@ -36,7 +36,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
 
         [HttpPost("register")]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
-        public async Task RegisterAsync([FromBody] UserRegisterRequestModel userRegisterRequestModel)
+        public async Task<string> RegisterAsync([FromBody] UserRegisterRequestModel userRegisterRequestModel)
         {
             if (ModelState.IsValid)
             {
@@ -50,7 +50,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
                 if (result.Succeeded)
                 {
                     Response.StatusCode = 200;
-                    await Response.WriteAsync("OK");
+                    return "OK";
                     //await Login(new AuthModel
                     //{
                     //    Email = userRegisterRequestModel.Email,
@@ -60,8 +60,12 @@ namespace ARKPZ_CourseWork_Backend.Controllers
                 else
                 {
                     Response.StatusCode = 400; // Bad Request
-                    await Response.WriteAsync(string.Join("\n", result.Errors.Select(x => x.Description)));
+                    return string.Join("\n", result.Errors.Select(x => x.Description));
                 }
+            }
+            else
+            {
+                return "";
             }
         }
 
@@ -69,6 +73,7 @@ namespace ARKPZ_CourseWork_Backend.Controllers
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public async Task Login([FromBody] AuthModel model)
         {
+            // ?????????
             await _signInManager.PasswordSignInAsync(model.Email, model.Password, true,
                 false);
 

@@ -75,6 +75,7 @@ namespace ARKPZ_CourseWork_Backend
             string connectionString = Configuration.GetConnectionString("DefaultConnection");
             services.AddDbContext<BackendContext>(options => options.UseSqlServer(connectionString));
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddSingleton(Configuration);
             //services.AddSingleton<IDictionary<Guid, AuthToken>>();
         }
 
@@ -102,7 +103,7 @@ namespace ARKPZ_CourseWork_Backend
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.UseAuthentication();
 
             app.UseMvc();
